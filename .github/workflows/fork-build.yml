@@ -1,0 +1,86 @@
+name: Build Fork Assets
+
+on:
+    workflow_dispatch:
+    push:
+        branches:
+            - main
+        paths:
+            - .github/workflows/fork-build.yml
+            - src/**
+            - browser/**
+            - scripts/build/**
+            - package.json
+            - pnpm-lock.yaml
+
+permissions:
+    contents: write
+
+concurrency:
+    group: fork-build-${{ github.ref }}
+    cancel-in-progress: true
+
+env:
+    FORCE_COLOR: true
+
+jobs:
+    build:
+        if: github.repository != 'Vendicated/Vencord'
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+
+            - uses: pnpm/action-setup@v3
+
+            - name: Use Node.js 20
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 20
+                  cache: "pnpm"
+
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+
+            - name: Build web
+              run: pnpm buildWebStandalone
+
+            - name: Build desktop
+              run: pnpm build --standalone
+
+            - name: Generate plugin list
+              run: pnpm generatePluginJson dist/plugins.json dist/plugin-readmes.json
+
+            - name: Clean up obsolete files
+              run: |
+                  rm -rf dist/*-unpacked dist/vendor Vencord.user.css vencordDesktopRenderer.css vencordDesktopRenderer.css.map
+
+            - name: Upload build artifact
+              uses: actions/upload-artifact@v4
+              with:
+                  name: vencord-fork-dist
+                  path: dist/*
+
+            - name: Publish stable install release
+              if: github.ref == 'refs/heads/main'
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  release_tag="fork-build"
+                  release_title="Fork Build $(git rev-parse --short HEAD)"
+                  release_notes="Automated build for $GITHUB_SHA."
+
+                  git config user.name "github-actions[bot]"
+                  git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+                  git tag -f "$release_tag" "$GITHUB_SHA"
+                  git push --force origin "refs/tags/$release_tag"
+
+                  if gh release view "$release_tag" >/dev/null 2>&1; then
+                      gh release edit "$release_tag" --title "$release_title" --notes "$release_notes"
+                  else
+                      gh release create "$release_tag" --title "$release_title" --notes "$release_notes"
+                  fi
+
+                  gh release upload "$release_tag" dist/* --clobber

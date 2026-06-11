@@ -1,11 +1,11 @@
 // ==UserScript==
-// @name            Vencord
+// @name            Vencord (plooky fork)
 // @description     A Discord client mod - Web version
 // @version         %version%
-// @author          Vendicated (https://github.com/Vendicated)
-// @namespace       https://github.com/Vendicated/Vencord
-// @supportURL      https://github.com/Vendicated/Vencord
-// @icon            https://raw.githubusercontent.com/Vendicated/Vencord/refs/heads/main/browser/icon.png
+// @author          Vendicated (https://github.com/Vendicated), plooky (https://github.com/plooky)
+// @namespace       https://github.com/plooky/Vencord
+// @supportURL      https://github.com/plooky/Vencord/issues
+// @icon            https://raw.githubusercontent.com/plooky/Vencord/refs/heads/main/browser/icon.png
 // @license         GPL-3.0
 // @match           *://*.discord.com/*
 // @grant           GM_xmlhttpRequest
